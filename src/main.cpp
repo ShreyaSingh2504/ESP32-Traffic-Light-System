@@ -1,108 +1,126 @@
+
 #include <Arduino.h>
 
-//LED pin definitions
-const int redLED =25;// the value will not chnage during the program
-const int yellowLED =26;
-const int greenLED =27;
+// LED pin definitions
+const int redLED = 25;
+const int yellowLED = 26;
+const int greenLED = 27;
 
-//pedestrian button
+// Pedestrian button
 const int buttonPin = 14;
 
-// state machine definition
+// State machine definition
 enum TrafficState
 {
-  STATE_GREEN,//ASSIGNING NAME TO NO.(0)
-  STATE_YELLOW,//(1)
-  STATE_RED,//(2)
-  STATE_PEDESTRIAN//(3)
+    STATE_GREEN,
+    STATE_YELLOW,
+    STATE_RED,
+    STATE_PEDESTRIAN
 };
 
-// current sys state
+// Current system state
 TrafficState currentState = STATE_GREEN;
 
-//timing variable
+// Timing variable
 unsigned long previousTime = 0;
 
-//pedestrian request flag
-bool pedestrianRequest = false;// false --> no request true --> someone pressed button
+// Pedestrian request flag
+bool pedestrianRequest = false;
 
 void setup()
 {
-  pinMode(redLED, OUTPUT);
-  pinMode(yellowLED, OUTPUT);
-  pinMode(greenLED, OUTPUT);
+    pinMode(redLED, OUTPUT);
+    pinMode(yellowLED, OUTPUT);
+    pinMode(greenLED, OUTPUT);
 
-  pinMode(buttonPin, INPUT);
+    // Enable internal pull-down resistor
+    pinMode(buttonPin, INPUT_PULLDOWN);
 
-  Serial.begin(115200);
+    Serial.begin(115200);
+
+    Serial.println("ESP32 Traffic Light Controller Started");
 }
+
 void loop()
 {
-  // check pedestrian button first
-  if(digitalRead(buttonPin) == HIGH)
-  {
-    pedestrianRequest = true;
-  }
-
-  //green state
-  if(currentState == STATE_GREEN)
-  {
-    digitalWrite(greenLED, HIGH);
-    digitalWrite(yellowLED, LOW);
-    digitalWrite(redLED, LOW);
-    if(millis() - previousTime >= 10000)
+    // Check pedestrian button
+    if (digitalRead(buttonPin) == HIGH)
     {
-      currentState = STATE_YELLOW;
-      previousTime = millis();
+        pedestrianRequest = true;
     }
-  }
-  
-  //yellow state
-  else if(currentState == STATE_YELLOW)
-  {
-    digitalWrite(greenLED, LOW);
-    digitalWrite(yellowLED, HIGH);
-    digitalWrite(redLED, LOW);
 
-    if(millis() - previousTime >= 3000)
+    // GREEN STATE
+    if (currentState == STATE_GREEN)
     {
-      currentState = STATE_RED;
-      previousTime = millis();
+        digitalWrite(greenLED, HIGH);
+        digitalWrite(yellowLED, LOW);
+        digitalWrite(redLED, LOW);
+
+        if (millis() - previousTime >= 10000)
+        {
+            currentState = STATE_YELLOW;
+            previousTime = millis();
+
+            Serial.println("GREEN -> YELLOW");
+        }
     }
-  }
 
-  //red state
-  else if(currentState == STATE_RED)
-  {
-    digitalWrite(greenLED, LOW);
-    digitalWrite(yellowLED, LOW);
-    digitalWrite(redLED, HIGH);
-
-    if(millis() - previousTime >= 7000)
+    // YELLOW STATE
+    else if (currentState == STATE_YELLOW)
     {
-      if(pedestrianRequest == true)
-      {
-        currentState = STATE_PEDESTRIAN;
-        pedestrianRequest = false;// the request has been handled 
-      }
-      else{
-        currentState = STATE_GREEN;
-      }
-    }
-  }
-    
-    //pedestrian state
-    else if(currentState == STATE_PEDESTRIAN)
-    {
-      digitalWrite(greenLED, LOW);
-      digitalWrite(yellowLED, LOW);
-      digitalWrite(redLED, HIGH);
+        digitalWrite(greenLED, LOW);
+        digitalWrite(yellowLED, HIGH);
+        digitalWrite(redLED, LOW);
 
-      if(millis() - previousTime >= 5000)
-      {
-        currentState = STATE_GREEN;
-        previousTime = millis();
-      }
+        if (millis() - previousTime >= 3000)
+        {
+            currentState = STATE_RED;
+            previousTime = millis();
+
+            Serial.println("YELLOW -> RED");
+        }
     }
-  
+
+    // RED STATE
+    else if (currentState == STATE_RED)
+    {
+        digitalWrite(greenLED, LOW);
+        digitalWrite(yellowLED, LOW);
+        digitalWrite(redLED, HIGH);
+
+        if (millis() - previousTime >= 7000)
+        {
+            if (pedestrianRequest == true)
+            {
+                currentState = STATE_PEDESTRIAN;
+                pedestrianRequest = false;
+
+                Serial.println("RED -> PEDESTRIAN");
+            }
+            else
+            {
+                currentState = STATE_GREEN;
+
+                Serial.println("RED -> GREEN");
+            }
+
+            previousTime = millis();
+        }
+    }
+
+    // PEDESTRIAN STATE
+    else if (currentState == STATE_PEDESTRIAN)
+    {
+        digitalWrite(greenLED, LOW);
+        digitalWrite(yellowLED, LOW);
+        digitalWrite(redLED, HIGH);
+
+        if (millis() - previousTime >= 5000)
+        {
+            currentState = STATE_GREEN;
+            previousTime = millis();
+
+            Serial.println("PEDESTRIAN -> GREEN");
+        }
+    }
 }
