@@ -2,13 +2,14 @@
 # PlatformIO build files
 .pio/
 
-# VS Code settings and temporary files
+# VS Code settings
 .vscode/
 
 # Operating system files
 .DS_Store
 Thumbs.db
 
-# Python cache files
+# Python cache
 __pycache__/
 *.pyc
+
