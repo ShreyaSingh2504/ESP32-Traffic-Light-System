@@ -6,10 +6,10 @@ const int redLED = 25;
 const int yellowLED = 26;
 const int greenLED = 27;
 
-// Pedestrian button
+// Pedestrian button pin
 const int buttonPin = 14;
 
-// State machine definition
+// Traffic light states
 enum TrafficState
 {
     STATE_GREEN,
@@ -18,14 +18,21 @@ enum TrafficState
     STATE_PEDESTRIAN
 };
 
-// Current system state
+// Current state
 TrafficState currentState = STATE_GREEN;
 
-// Timing variable
+// Timing variables
 unsigned long previousTime = 0;
+unsigned long lastDebounceTime = 0;
 
-// Pedestrian request flag
+const unsigned long debounceDelay = 50;
+
+// Pedestrian request
 bool pedestrianRequest = false;
+
+// Button debouncing variables
+bool lastButtonReading = LOW;
+bool stableButtonState = LOW;
 
 void setup()
 {
@@ -33,23 +40,56 @@ void setup()
     pinMode(yellowLED, OUTPUT);
     pinMode(greenLED, OUTPUT);
 
-    // Enable internal pull-down resistor
+    // Internal pull-down resistor
     pinMode(buttonPin, INPUT_PULLDOWN);
 
     Serial.begin(115200);
 
+    // Initial LED condition
+    digitalWrite(greenLED, HIGH);
+    digitalWrite(yellowLED, LOW);
+    digitalWrite(redLED, LOW);
+
+    previousTime = millis();
+
     Serial.println("ESP32 Traffic Light Controller Started");
+    Serial.println("Current State: GREEN");
 }
 
 void loop()
 {
-    // Check pedestrian button
-    if (digitalRead(buttonPin) == HIGH)
+    // --------------------------------
+    // PEDESTRIAN BUTTON DEBOUNCING
+    // --------------------------------
+
+    bool buttonReading = digitalRead(buttonPin);
+
+    if (buttonReading != lastButtonReading)
     {
-        pedestrianRequest = true;
+        lastDebounceTime = millis();
     }
 
+    if (millis() - lastDebounceTime >= debounceDelay)
+    {
+        if (buttonReading != stableButtonState)
+        {
+            stableButtonState = buttonReading;
+
+            // Register only a new button press
+            if (stableButtonState == HIGH)
+            {
+                pedestrianRequest = true;
+                Serial.println("Pedestrian Request Received");
+            }
+        }
+    }
+
+    lastButtonReading = buttonReading;
+
+    // --------------------------------
     // GREEN STATE
+    // --------------------------------
+
     if (currentState == STATE_GREEN)
     {
         digitalWrite(greenLED, HIGH);
@@ -65,7 +105,10 @@ void loop()
         }
     }
 
+    // --------------------------------
     // YELLOW STATE
+    // --------------------------------
+
     else if (currentState == STATE_YELLOW)
     {
         digitalWrite(greenLED, LOW);
@@ -81,7 +124,10 @@ void loop()
         }
     }
 
+    // --------------------------------
     // RED STATE
+    // --------------------------------
+
     else if (currentState == STATE_RED)
     {
         digitalWrite(greenLED, LOW);
@@ -108,7 +154,10 @@ void loop()
         }
     }
 
+    // --------------------------------
     // PEDESTRIAN STATE
+    // --------------------------------
+
     else if (currentState == STATE_PEDESTRIAN)
     {
         digitalWrite(greenLED, LOW);
