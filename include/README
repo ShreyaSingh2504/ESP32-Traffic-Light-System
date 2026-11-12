@@ -1,37 +1,83 @@
+# ESP32-Based Traffic Light Controller
 
-This directory is intended for project header files.
+## Project Overview
+This project implements a traffic light controller using an ESP32 microcontroller and a finite state machine (FSM). It controls the sequence of traffic lights using predefined timing intervals and includes a pedestrian request mechanism.
 
-A header file is a file containing C declarations and macro definitions
-to be shared between several project source files. You request the use of a
-header file in your project source file (C, C++, etc) located in `src` folder
-by including it, with the C preprocessing directive `#include'.
+The system uses a pedestrian push button to register crossing requests. Once a request is received, the controller completes the current traffic cycle and enters the pedestrian phase.
 
-```src/main.c
+## Features
+- Finite State Machine (FSM)-based traffic light control.
+- Timed transitions between GREEN, YELLOW, and RED states.
+- Pedestrian request handling using a push button.
+- Button debouncing to reduce false triggering.
+- Non-blocking timing using `millis()`.
+- Serial Monitor messages for tracking state transitions.
 
-#include "header.h"
+## State Diagram
 
-int main (void)
-{
- ...
-}
+```mermaid
+stateDiagram-v2
+    [*] --> GREEN
+
+    GREEN --> YELLOW: After 10 seconds
+    YELLOW --> RED: After 3 seconds
+
+    RED --> PEDESTRIAN: After 7 seconds / Request received
+    RED --> GREEN: After 7 seconds / No request
+
+    PEDESTRIAN --> GREEN: After 5 seconds
+
+    note right of RED
+        Vehicle red LED remains ON.
+        Checks for pending pedestrian request.
+    end note
+
+    note right of PEDESTRIAN
+        Vehicle red LED remains ON
+        during the pedestrian phase.
+    end note
 ```
 
-Including a header file produces the same results as copying the header file
-into each source file that needs it. Such copying would be time-consuming
-and error-prone. With a header file, the related declarations appear
-in only one place. If they need to be changed, they can be changed in one
-place, and programs that include the header file will automatically use the
-new version when next recompiled. The header file eliminates the labor of
-finding and changing all the copies as well as the risk that a failure to
-find one copy will result in inconsistencies within a program.
+## State Timing
 
-In C, the convention is to give header files names that end with `.h'.
+| State | Duration | Action |
+|---|---:|---|
+| GREEN | 10 seconds | Green LED ON |
+| YELLOW | 3 seconds | Yellow LED ON |
+| RED | 7 seconds | Red LED ON |
+| PEDESTRIAN | 5 seconds | Red LED remains ON |
 
-Read more about using header files in official GCC documentation:
+A pedestrian request is stored when the button is pressed and is handled after the RED phase.
 
-* Include Syntax
-* Include Operation
-* Once-Only Headers
-* Computed Includes
+## Pin Configuration
 
-https://gcc.gnu.org/onlinedocs/cpp/Header-Files.html
+| Component | ESP32 GPIO |
+|---|---:|
+| Red LED | GPIO 25 |
+| Yellow LED | GPIO 26 |
+| Green LED | GPIO 27 |
+| Pedestrian Button | GPIO 14 |
+
+The button uses the ESP32 internal pull-down configuration (`INPUT_PULLDOWN`).
+
+## Software and Tools
+- ESP32
+- PlatformIO
+- Arduino Framework
+- C++
+
+## Project Structure
+- `src/main.cpp` – Main traffic light controller implementation.
+- `platformio.ini` – PlatformIO project configuration.
+- `include/` – Header files.
+- `lib/` – Project libraries.
+- `test/` – Test directory.
+
+## Testing Status
+The source code and project configuration are uploaded to GitHub. Physical hardware testing has not yet been performed.
+
+## Future Improvements
+- Hardware implementation and validation.
+- Addition of pedestrian WALK/STOP indicators.
+- Integration of vehicle detection sensors.
+- Further testing of pedestrian request handling.
